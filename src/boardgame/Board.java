@@ -6,6 +6,9 @@ public class Board {
     private Piece[][] pieces;
 
     public Board(int rows, int columns) {
+        if(rows < 1 || columns < 1){
+            throw new BoardException("Error: the board could not be created because the rows or columns are insufficient.");
+        }
         this.rows = rows;
         this.columns = columns;
         this.pieces = new Piece[rows][columns];
@@ -39,4 +42,19 @@ public class Board {
         pieces[position.getX()][position.getY()] = piece;
         piece.position = position;
     }
+
+    private boolean positionExists (int row, int column){
+        return column >= 0 && column < columns && row >= 0 && row < rows;
+    }
+
+    public boolean positionExists (Position position){
+        return positionExists(position.getX(), position.getY());
+    }
+
+    public boolean thereIsAPiece(Position position){
+
+        return getPiece(position) != null;
+    }
+
+
 }
