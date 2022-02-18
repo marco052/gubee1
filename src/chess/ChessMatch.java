@@ -31,4 +31,5 @@ public class ChessMatch {
     private void initialSetup(){
         placePieceOnBoard('e', 8 , new Rook(board, Color.WHITE));
     }
+
 }
