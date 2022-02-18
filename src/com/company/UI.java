@@ -2,6 +2,11 @@ package com.company;
 
 import boardgame.Piece;
 import chess.ChessPiece;
+import chess.ChessPosition;
+
+import javax.swing.*;
+import java.util.InputMismatchException;
+import java.util.Scanner;
 
 public class UI {
     public static void printBoard(ChessPiece[][] pieces){
@@ -13,6 +18,18 @@ public class UI {
             System.out.println();
         }
         System.out.println("  A B C D E F G H");
+    }
+
+    public static ChessPosition readChessPosition (Scanner scanner){
+        try{
+            String s = scanner.nextLine();
+            char column = s.charAt(0);
+            int row = Integer.parseInt(s.substring(1));
+            return new ChessPosition(column, row);
+        }
+        catch(RuntimeException e){
+            throw new InputMismatchException("Values are between 1 and 8");
+        }
     }
 
     public static void printPiece(Piece piece){
