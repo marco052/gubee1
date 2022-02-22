@@ -48,6 +48,7 @@ public class Board {
             throw new BoardException("Position isn't on the board");
         }
         if(getPiece(position) == null){
+
             return null;
         }
         Piece assist = getPiece(position);

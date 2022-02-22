@@ -25,6 +25,11 @@ public class Position {
         this.y = y;
     }
 
+    public void setPosition(int x, int y){
+        this.x = x;
+        this.y = y;
+    }
+
     @Override
     public String toString() {
         return "("+ x + ", " + y + ")";

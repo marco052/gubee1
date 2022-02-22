@@ -12,11 +12,12 @@ public class ChessMatch {
 
     public ChessMatch(){
         this.board = new Board(8,8);
+        initialSetup();
     }
 
     public ChessPiece[][] getPieces(){
         ChessPiece[][] assist = new ChessPiece[board.getRows()][board.getColumns()];
-        initialSetup();
+
         for (int i = 0 ; i < board.getRows(); i++)
         {
             for (int j = 0; j < board.getColumns(); j++)
@@ -31,6 +32,7 @@ public class ChessMatch {
         Position matrixOrigin = origin.toPosition();
         Position matrixDestiny = destiny.toPosition();
         validateOriginPosition(matrixOrigin);
+        validateDestinyPosition(matrixOrigin, matrixDestiny);
         Piece capturedPiece = makeMove(matrixOrigin, matrixDestiny);
         return (ChessPiece) capturedPiece;
     }
@@ -46,6 +48,15 @@ public class ChessMatch {
         if(!board.thereIsAPiece(position)){
             throw new ChessException("there is no piece on origin position");
         }
+        if(!board.getPiece(position).isThereAnyPossibleMove()){
+            throw new ChessException("the piece cannot move");
+        }
+    }
+
+    private void validateDestinyPosition(Position origin, Position destiny){
+        if(!board.getPiece(origin).posibleMove(destiny)){
+            throw new ChessException("this piece cannot move to the selected destiny");
+        }
     }
 
     private void placePieceOnBoard(char column, int row, ChessPiece piece){
@@ -55,5 +66,6 @@ public class ChessMatch {
     private void initialSetup(){
         placePieceOnBoard('e', 8 , new Rook(board, Color.WHITE));
     }
+
 
 }
