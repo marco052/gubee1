@@ -6,7 +6,9 @@ import boardgame.Position;
 import chess.pieces.*;
 
 import java.nio.file.attribute.PosixFileAttributes;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
+import java.util.InvalidPropertiesFormatException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,6 +18,8 @@ public class ChessMatch {
     private Color currentPlayer;
     private boolean check;
     private boolean checkMate;
+    private ChessPiece enPassantVulnerable;
+    private ChessPiece promoted;
     private List<Piece> piecesOnTheBoard;
     private List<Piece> capturedPieces;
 
@@ -42,6 +46,14 @@ public class ChessMatch {
 
     public Color getCurrentPlayer(){
         return currentPlayer;
+    }
+
+    public ChessPiece getEnPassantVulnerable(){
+        return enPassantVulnerable;
+    }
+
+    public ChessPiece getPromoted(){
+        return promoted;
     }
 
     public ChessPiece[][] getPieces(){
@@ -75,6 +87,16 @@ public class ChessMatch {
             throw new ChessException("you can't put yourself in check");
         }
 
+        ChessPiece movedPiece = (ChessPiece)board.getPiece(matrixDestiny);
+
+        promoted = null;
+        if(movedPiece instanceof Pawn){
+            if((movedPiece.getColor() == Color.WHITE && matrixDestiny.getX() == 0) || (movedPiece.getColor() == Color.BLACK && matrixDestiny.getX() == 7)){
+                promoted = (ChessPiece)board.getPiece(matrixDestiny);
+                promoted = replacePromotedPiece("Q");
+            }
+        }
+
         check = (testCheck(opponent(currentPlayer))) ? true : false;
 
 
@@ -85,7 +107,40 @@ public class ChessMatch {
             nextTurn();
         }
 
+        if(movedPiece instanceof Pawn && (matrixDestiny.getX() == matrixOrigin.getX() - 2 || matrixDestiny.getX() == matrixOrigin.getX() + 2)){
+            enPassantVulnerable = movedPiece;
+        }
+        else{
+            enPassantVulnerable = null;
+        }
+
         return (ChessPiece) capturedPiece;
+    }
+
+    public ChessPiece replacePromotedPiece(String type){
+        if(promoted == null){
+            throw new IllegalStateException("there is no piece to be promoted");
+        }
+        if(!type.equals("B") && !type.equals("N") && !type.equals("R") && !type.equals("Q")){
+            throw new InvalidParameterException("invalid type for promotion");
+        }
+        Position pos = promoted.getChessPosition().toPosition();
+        Piece p = board.removePiece(pos);
+        piecesOnTheBoard.remove(p);
+
+        ChessPiece newPiece = newPiece(type, promoted.getColor());
+        board.placePiece(newPiece, pos);
+        piecesOnTheBoard.add(newPiece);
+
+        return newPiece;
+
+    }
+
+    private ChessPiece newPiece(String type, Color color){
+        if(type.equals("B")) return new Bishop(board, color);
+        if(type.equals("N")) return new Knight(board, color);
+        if(type.equals("R")) return new Rook(board, color);
+        return new Queen(board, color);
     }
 
     private Piece makeMove(Position origin, Position destiny){
@@ -117,6 +172,21 @@ public class ChessMatch {
             rook.increaseMoveCount();
         }
 
+        if(p instanceof Pawn){
+            if(origin.getX() != destiny.getY() && capturedPiece == null){
+                Position pawnPosition;
+                if(p.getColor() == Color.WHITE){
+                    pawnPosition = new Position(destiny.getX() +1, destiny.getY());
+                }
+                else{
+                    pawnPosition = new Position(destiny.getX() -1, destiny.getY());
+                }
+                capturedPiece = board.removePiece((pawnPosition));
+                capturedPieces.add(capturedPiece);
+                piecesOnTheBoard.remove(capturedPiece);
+            }
+        }
+
         return capturedPiece;
     }
 
@@ -145,6 +215,25 @@ public class ChessMatch {
             ChessPiece rook = (ChessPiece)board.removePiece(targetT);
             board.placePiece(rook, sourceT);
             rook.decreaseMoveCount();
+        }
+
+        if(p instanceof Pawn){
+            if(origin.getX() != destiny.getY() && capturedPiece == enPassantVulnerable){
+                ChessPiece pawn = (ChessPiece)board.removePiece(destiny);
+                Position pawnPosition;
+                if(p.getColor() == Color.WHITE){
+                    pawnPosition = new Position(3, destiny.getY());
+                }
+                else{
+                    pawnPosition = new Position(4, destiny.getY());
+                }
+
+                board.placePiece(pawn, pawnPosition);
+
+                capturedPiece = board.removePiece((pawnPosition));
+                capturedPieces.add(capturedPiece);
+                piecesOnTheBoard.remove(capturedPiece);
+            }
         }
 
     }
@@ -238,14 +327,14 @@ public class ChessMatch {
         placePieceOnBoard('f', 1, new Bishop(board, Color.WHITE));
         placePieceOnBoard('g', 1, new Knight(board, Color.WHITE));
         placePieceOnBoard('h', 1, new Rook(board, Color.WHITE));
-        placePieceOnBoard('a', 2, new Pawn(board, Color.WHITE));
-        placePieceOnBoard('b', 2, new Pawn(board, Color.WHITE));
-        placePieceOnBoard('c', 2, new Pawn(board, Color.WHITE));
-        placePieceOnBoard('d', 2, new Pawn(board, Color.WHITE));
-        placePieceOnBoard('e', 2, new Pawn(board, Color.WHITE));
-        placePieceOnBoard('f', 2, new Pawn(board, Color.WHITE));
-        placePieceOnBoard('g', 2, new Pawn(board, Color.WHITE));
-        placePieceOnBoard('h', 2, new Pawn(board, Color.WHITE));
+        placePieceOnBoard('a', 2, new Pawn(board, Color.WHITE, this));
+        placePieceOnBoard('b', 2, new Pawn(board, Color.WHITE, this));
+        placePieceOnBoard('c', 2, new Pawn(board, Color.WHITE, this));
+        placePieceOnBoard('d', 2, new Pawn(board, Color.WHITE, this));
+        placePieceOnBoard('e', 2, new Pawn(board, Color.WHITE, this));
+        placePieceOnBoard('f', 2, new Pawn(board, Color.WHITE, this));
+        placePieceOnBoard('g', 2, new Pawn(board, Color.WHITE, this));
+        placePieceOnBoard('h', 2, new Pawn(board, Color.WHITE, this));
 
         placePieceOnBoard('a', 8, new Rook(board, Color.BLACK));
         placePieceOnBoard('b', 8, new Knight(board, Color.BLACK));
@@ -255,14 +344,14 @@ public class ChessMatch {
         placePieceOnBoard('f', 8, new Bishop(board, Color.BLACK));
         placePieceOnBoard('g', 8, new Knight(board, Color.BLACK));
         placePieceOnBoard('h', 8, new Rook(board, Color.BLACK));
-        placePieceOnBoard('a', 7, new Pawn(board, Color.BLACK));
-        placePieceOnBoard('b', 7, new Pawn(board, Color.BLACK));
-        placePieceOnBoard('c', 7, new Pawn(board, Color.BLACK));
-        placePieceOnBoard('d', 7, new Pawn(board, Color.BLACK));
-        placePieceOnBoard('e', 7, new Pawn(board, Color.BLACK));
-        placePieceOnBoard('f', 7, new Pawn(board, Color.BLACK));
-        placePieceOnBoard('g', 7, new Pawn(board, Color.BLACK));
-        placePieceOnBoard('h', 7, new Pawn(board, Color.BLACK));
+        placePieceOnBoard('a', 7, new Pawn(board, Color.BLACK, this));
+        placePieceOnBoard('b', 7, new Pawn(board, Color.BLACK, this));
+        placePieceOnBoard('c', 7, new Pawn(board, Color.BLACK, this));
+        placePieceOnBoard('d', 7, new Pawn(board, Color.BLACK, this));
+        placePieceOnBoard('e', 7, new Pawn(board, Color.BLACK, this));
+        placePieceOnBoard('f', 7, new Pawn(board, Color.BLACK, this));
+        placePieceOnBoard('g', 7, new Pawn(board, Color.BLACK, this));
+        placePieceOnBoard('h', 7, new Pawn(board, Color.BLACK, this));
 
 
 
